@@ -5,38 +5,9 @@
 //  Created by Luke Van In on 2022/05/20.
 //
 
+import Combine
 import UIKit
 import AVFoundation
-
-
-final class VideoView: UIView {
-    
-    var player: AVPlayer? {
-        get {
-            return playerLayer.player
-        }
-        set {
-            playerLayer.player = newValue
-        }
-    }
-    
-    var videoGravity: AVLayerVideoGravity {
-        get {
-            playerLayer.videoGravity
-        }
-        set {
-            playerLayer.videoGravity = newValue
-        }
-    }
-    
-    private var playerLayer: AVPlayerLayer {
-        layer as! AVPlayerLayer
-    }
-    
-    override class var layerClass: AnyClass {
-        return AVPlayerLayer.self
-    }
-}
 
 
 final class ViewController: UIViewController {
@@ -45,21 +16,39 @@ final class ViewController: UIViewController {
         return true
     }
     
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        [.portrait]
+    }
+    
     private let rateSlider: UISlider
+    private let seekSlider: UISlider
     private let volumeSlider: UISlider
     private let resetButton: UIButton
     
     private var videoPlayer: AVPlayer?
     private var videoPlayerStatusObserver: NSKeyValueObservation?
     
+    private var motionEventCancellable: AnyCancellable?
+    private var attitudeMeasurement: MotionProviderEvent.AttitudeMeasurement?
+    
+    private var startSeekTime: TimeInterval?
+    private var targetSeekTime: TimeInterval?
+    private var lastSeekTime: TimeInterval?
+    private var seeking: Bool = false
+    
+    private var displayLink: CADisplayLink?
+    
     private let videoFileURL: URL
     private let videoView: VideoView
+    private let motionController: MotionController
     
-    init(videoFileURL: URL) {
+    init(videoFileURL: URL, motionController: MotionController) {
         self.rateSlider = UISlider()
         self.volumeSlider = UISlider()
+        self.seekSlider = UISlider()
         self.resetButton = UIButton()
         self.videoView = VideoView()
+        self.motionController = motionController
         self.videoFileURL = videoFileURL
         super.init(nibName: nil, bundle: nil)
     }
@@ -84,6 +73,13 @@ final class ViewController: UIViewController {
         rateSlider.isContinuous = true
         rateSlider.addTarget(self, action: #selector(onRateSliderChanged), for: .valueChanged)
         
+        seekSlider.translatesAutoresizingMaskIntoConstraints = false
+        seekSlider.isUserInteractionEnabled = false
+        seekSlider.minimumValue = 0
+        seekSlider.maximumValue = 1
+        seekSlider.value = 0
+        seekSlider.isContinuous = true
+
         volumeSlider.translatesAutoresizingMaskIntoConstraints = false
         volumeSlider.minimumValue = 0
         volumeSlider.maximumValue = 1
@@ -99,6 +95,7 @@ final class ViewController: UIViewController {
         controlsStack.translatesAutoresizingMaskIntoConstraints = false
         controlsStack.axis = .vertical
         controlsStack.spacing = 44
+         controlsStack.addArrangedSubview(seekSlider)
         controlsStack.addArrangedSubview(volumeSlider)
         controlsStack.addArrangedSubview(rateSlider)
         controlsStack.addArrangedSubview(resetButton)
@@ -133,12 +130,18 @@ final class ViewController: UIViewController {
         setupVideoPlayer()
         invalidatePlayerRate()
         invalidatePlayerVolume()
+        startMotion()
+        startDisplayLink()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        stopDisplayLink()
+        stopMotion()
         destroyVideoPlayer()
     }
+    
+    // MARK: Video Player
     
     private func setupVideoPlayer() {
         guard videoPlayer == nil else {
@@ -187,12 +190,20 @@ final class ViewController: UIViewController {
         guard let videoPlayer = videoPlayer else {
             return
         }
-        let rawValue = rateSlider.value
-        let absoluteRate = abs(rawValue) + 1
-        let direction = rawValue >= 0 ? Float(+1) : Float(-1)
-        let relativeRate = absoluteRate * direction
-        print("rate: \(relativeRate)")
-        videoPlayer.rate = relativeRate
+        let rate: Float
+        if seeking == true {
+            rate = 0
+        }
+        else {
+            let rawValue = round(rateSlider.value * 10) / 10
+            let absoluteRate = 1 + abs(rawValue * 5)
+            let direction = rawValue >= 0 ? Float(+1) : Float(-1)
+            rate = absoluteRate * direction
+        }
+        guard rate != videoPlayer.rate else {
+            return
+        }
+        videoPlayer.rate = rate
     }
     
     private func invalidatePlayerVolume() {
@@ -201,6 +212,141 @@ final class ViewController: UIViewController {
         }
         print("volume: \(volumeSlider.value)")
         videoPlayer.volume = volumeSlider.value
+    }
+    
+    
+    // MARK: Motion
+    
+    private func startMotion() {
+        motionController.start()
+        motionEventCancellable = motionController.eventPublisher
+            .throttle(for: 0.03, scheduler: RunLoop.main, latest: true)
+            .sink { [weak self] event in
+                guard let self = self else {
+                    return
+                }
+                self.handleMotionEvent(event)
+            }
+    }
+    
+    private func stopMotion() {
+        motionController.stop()
+    }
+    
+    private func handleMotionEvent(_ event: MotionProviderEvent) {
+        dispatchPrecondition(condition: .onQueue(.main))
+        switch event {
+            
+        case .error(let error):
+            // TODO: Log or display error
+            break
+            
+        case .measurement(let attitudeMeasurement):
+            // updateRate(angle: attitudeMeasurement.roll)
+            self.attitudeMeasurement = attitudeMeasurement
+        }
+    }
+    
+    private func updateRate(angle: Measurement<UnitAngle>) {
+            
+        guard let videoPlayer = videoPlayer else {
+            return
+        }
+        guard let playerItem = videoPlayer.currentItem else {
+            return
+        }
+        let duration = playerItem.duration.seconds
+        guard duration.isNormal else {
+            return
+        }
+        // Convert roll from [-1/4 ... +1/4] to [-1 ... +1]
+        let input = angle.converted(to: .revolutions).value
+        
+        let k = input * 4
+        if abs(k) > 0.1 {
+            // if startSeekTime == nil {
+            let currentTime = videoPlayer.currentTime().seconds
+            startSeekTime = currentTime
+            // }
+            let timeDelta = k * 2
+            targetSeekTime = min(max(0, startSeekTime! + timeDelta), duration)
+        }
+        else {
+            targetSeekTime = nil
+            lastSeekTime = nil
+            startSeekTime = nil
+        }
+        
+        seekVideo()
+
+//        let delta = round((input * 4) * 10) / 10
+//        rateSlider.value = Float(delta)
+//        invalidatePlayerRate()
+    }
+    
+    private func seekVideo() {
+        guard let videoPlayer = videoPlayer else {
+            return
+        }
+        guard seeking == false else {
+            return
+        }
+        guard let targetSeekTime = targetSeekTime else {
+            return
+        }
+        if let seekTime = lastSeekTime {
+            if seekTime == targetSeekTime {
+                return
+            }
+        }
+        seeking = true
+        lastSeekTime = targetSeekTime
+        invalidatePlayerRate()
+        videoPlayer.seek(
+            to: CMTime(seconds: lastSeekTime!, preferredTimescale: 1000),
+            toleranceBefore: CMTime(seconds: 0.033, preferredTimescale: 1000),
+            toleranceAfter: CMTime(seconds: 0.033, preferredTimescale: 1000),
+            completionHandler: { [weak self] _ in
+                dispatchPrecondition(condition: .onQueue(.main))
+                guard let self = self else {
+                    return
+                }
+                self.seeking = false
+                self.invalidatePlayerRate()
+                self.seekVideo()
+            }
+        )
+
+    }
+    
+//    private func updateVolume(angle: Measurement<UnitAngle>) {
+//        let input = angle.converted(to: .revolutions).value
+//        print(input.formatted(.number.precision(.fractionLength(3))))
+//        if input >
+//        volumeSlider.value =
+//    }
+    
+    // MARK: Display Link
+    
+    private func startDisplayLink() {
+        displayLink = CADisplayLink(target: self, selector: #selector(onDisplayLink))
+        displayLink?.add(to: .main, forMode: .common)
+    }
+    
+    private func stopDisplayLink() {
+        displayLink?.invalidate()
+        displayLink = nil
+    }
+    
+    @objc func onDisplayLink() {
+        if let attitudeMeasurement = attitudeMeasurement {
+            updateRate(angle: attitudeMeasurement.roll)
+        }
+        
+        let currentTime = videoPlayer?.currentTime().seconds ?? 0
+        let duration = videoPlayer?.currentItem?.duration.seconds ?? 0
+        let t = currentTime / duration
+        seekSlider.value = Float(t)
     }
 }
 

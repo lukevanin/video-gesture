@@ -17,12 +17,16 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let scene = (scene as? UIWindowScene) else {
-            return
+            fatalError("Cannot access scene")
         }
-        guard let videoFileURL = Bundle.main.url(forResource: "WeAreGoingOnBullrun", withExtension: "mp4") else {
-            return
+        guard let videoFileURL = Bundle.main.url(forResource: "WeAreGoingOnBullrun-optimized", withExtension: "mp4") else {
+            fatalError("Cannot locate video")
         }
-        let viewController = ViewController(videoFileURL: videoFileURL)
+        let motionController = MotionController()
+        let viewController = ViewController(
+            videoFileURL: videoFileURL,
+            motionController: motionController
+        )
         window = UIWindow(windowScene: scene)
         window?.rootViewController = viewController
         window?.makeKeyAndVisible()

@@ -16,6 +16,9 @@
 		FC7F58FD2837E54900DA6F33 /* OverPlayUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7F58FC2837E54900DA6F33 /* OverPlayUITests.swift */; };
 		FC7F58FF2837E54900DA6F33 /* OverPlayUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7F58FE2837E54900DA6F33 /* OverPlayUITestsLaunchTests.swift */; };
 		FC7F590F2837E67700DA6F33 /* WeAreGoingOnBullrun.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = FC7F590E2837E67700DA6F33 /* WeAreGoingOnBullrun.mp4 */; };
+		FC7F5911283921C300DA6F33 /* MotionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7F5910283921C300DA6F33 /* MotionController.swift */; };
+		FC7F59132839300700DA6F33 /* VideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7F59122839300700DA6F33 /* VideoView.swift */; };
+		FCD5A97B283A4E1B00A3A74E /* WeAreGoingOnBullrun-optimized.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = FCD5A97A283A4D9000A3A74E /* WeAreGoingOnBullrun-optimized.mp4 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +52,9 @@
 		FC7F58FC2837E54900DA6F33 /* OverPlayUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverPlayUITests.swift; sourceTree = "<group>"; };
 		FC7F58FE2837E54900DA6F33 /* OverPlayUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverPlayUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		FC7F590E2837E67700DA6F33 /* WeAreGoingOnBullrun.mp4 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = WeAreGoingOnBullrun.mp4; sourceTree = "<group>"; };
+		FC7F5910283921C300DA6F33 /* MotionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MotionController.swift; sourceTree = "<group>"; };
+		FC7F59122839300700DA6F33 /* VideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoView.swift; sourceTree = "<group>"; };
+		FCD5A97A283A4D9000A3A74E /* WeAreGoingOnBullrun-optimized.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = "WeAreGoingOnBullrun-optimized.mp4"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,6 +134,8 @@
 				FC7F58DB2837E54800DA6F33 /* AppDelegate.swift */,
 				FC7F58DD2837E54800DA6F33 /* SceneDelegate.swift */,
 				FC7F58DF2837E54800DA6F33 /* ViewController.swift */,
+				FC7F59122839300700DA6F33 /* VideoView.swift */,
+				FC7F5910283921C300DA6F33 /* MotionController.swift */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -138,6 +146,7 @@
 				FC7F58E42837E54900DA6F33 /* Assets.xcassets */,
 				FC7F58E62837E54900DA6F33 /* LaunchScreen.storyboard */,
 				FC7F58E92837E54900DA6F33 /* Info.plist */,
+				FCD5A97A283A4D9000A3A74E /* WeAreGoingOnBullrun-optimized.mp4 */,
 				FC7F590E2837E67700DA6F33 /* WeAreGoingOnBullrun.mp4 */,
 			);
 			name = Resources;
@@ -248,6 +257,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FC7F58E82837E54900DA6F33 /* LaunchScreen.storyboard in Resources */,
+				FCD5A97B283A4E1B00A3A74E /* WeAreGoingOnBullrun-optimized.mp4 in Resources */,
 				FC7F58E52837E54900DA6F33 /* Assets.xcassets in Resources */,
 				FC7F590F2837E67700DA6F33 /* WeAreGoingOnBullrun.mp4 in Resources */,
 			);
@@ -275,8 +285,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				FC7F58E02837E54800DA6F33 /* ViewController.swift in Sources */,
+				FC7F59132839300700DA6F33 /* VideoView.swift in Sources */,
 				FC7F58DC2837E54800DA6F33 /* AppDelegate.swift in Sources */,
 				FC7F58DE2837E54800DA6F33 /* SceneDelegate.swift in Sources */,
+				FC7F5911283921C300DA6F33 /* MotionController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -452,9 +464,10 @@
 				INFOPLIST_FILE = OverPlay/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = "gyroscope accelerometer";
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -482,9 +495,10 @@
 				INFOPLIST_FILE = OverPlay/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIRequiredDeviceCapabilities = "gyroscope accelerometer";
 				INFOPLIST_KEY_UIRequiresFullScreen = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
