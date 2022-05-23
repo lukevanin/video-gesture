@@ -29,6 +29,7 @@ enum MotionProviderEvent {
 
     case error(Error)
     case measurement(AttitudeMeasurement)
+    case shake(Bool)
 }
 
 
@@ -84,12 +85,18 @@ final private class RunningMotionState: MotionState {
         return queue
     }()
     
-    var referenceAttitude: CMAttitude!
+    var accelerationSamples = [Double]()
+    var isShakingPossible = false
+    var isShaking = false
+    let accelerationSampleCount = 60
+    let accelerationShakeThreshold = 1.2
+    let accelerationStopThreshold = 0.9
+
     
     override func enter() {
         logger.debug("Motion controller started")
         context.stateSubject.send(.running)
-        context.motionManager.deviceMotionUpdateInterval = 1.0 / 30.0
+        context.motionManager.deviceMotionUpdateInterval = 1.0 / 120.0
         context.motionManager.startDeviceMotionUpdates(
             using: .xArbitraryCorrectedZVertical,
             to: queue,
@@ -102,21 +109,57 @@ final private class RunningMotionState: MotionState {
                     self.context.eventSubject.send(.error(error!))
                     return
                 }
-                
-                let q = motion.attitude.quaternion
-                // See: https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Source_code_2
-                let roll = atan2(2 * (q.y * q.w - q.x * q.z), 1 - 2 * q.y * q.y - 2 * q.z * q.z)
-                let pitch = atan2(2 * (q.x * q.w + q.y * q.z), 1 - 2 * q.x * q.x - 2 * q.z * q.z)
-                let measurements = MotionProviderEvent.AttitudeMeasurement(
-                    roll: Measurement(value: roll, unit: UnitAngle.radians),
-                    pitch: Measurement(value: pitch, unit: UnitAngle.radians)
-                )
-                // let formattedRoll = measurements.roll.value.formatted(.number.precision(.fractionLength(3)))
-                // let formattedPitch = measurements.pitch.value.formatted(.number.precision(.fractionLength(3)))
-                // logger.info("r: \(formattedRoll), p: \(formattedPitch)")
-                self.context.eventSubject.send(.measurement(measurements))
+                self.updateMotion(motion: motion)
             }
         )
+    }
+    
+    private func updateMotion(motion: CMDeviceMotion) {
+        let a = motion.userAcceleration
+        let ax = sqrt(a.x * a.x + a.y * a.y + a.z * a.z)
+        self.accelerationSamples.append(ax)
+        if self.accelerationSamples.count > accelerationSampleCount {
+            self.accelerationSamples.removeFirst()
+        }
+        let ag = self.accelerationSamples.reduce(0.0, +) / Double(accelerationSampleCount)
+        print(ax.formatted(.number.precision(.fractionLength(3))), ag.formatted(.number.precision(.fractionLength(3))))
+        
+        isShakingPossible = ax >= accelerationShakeThreshold
+
+        var shaking = self.isShaking
+        if shaking == false {
+            if ag >= accelerationShakeThreshold {
+                shaking = true
+            }
+        }
+        else {
+            if ag <= accelerationStopThreshold {
+                shaking = false
+            }
+        }
+        // print(ag.formatted(.number.precision(.fractionLength(3))))
+        // let shaking = am >= accelerationShakeThreshold
+        if shaking != self.isShaking {
+            self.isShaking = shaking
+            print("shaking \(shaking ? "yes" : "no")")
+            self.context.eventSubject.send(.shake(self.isShaking))
+        }
+        
+        if isShaking || isShakingPossible {
+            return
+        }
+        let q = motion.attitude.quaternion
+        // See: https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Source_code_2
+        let roll = atan2(2 * (q.y * q.w - q.x * q.z), 1 - 2 * q.y * q.y - 2 * q.z * q.z)
+        let pitch = atan2(2 * (q.x * q.w + q.y * q.z), 1 - 2 * q.x * q.x - 2 * q.z * q.z)
+        let measurements = MotionProviderEvent.AttitudeMeasurement(
+            roll: Measurement(value: roll, unit: UnitAngle.radians),
+            pitch: Measurement(value: pitch, unit: UnitAngle.radians)
+        )
+        // let formattedRoll = measurements.roll.value.formatted(.number.precision(.fractionLength(3)))
+        // let formattedPitch = measurements.pitch.value.formatted(.number.precision(.fractionLength(3)))
+        // logger.info("r: \(formattedRoll), p: \(formattedPitch)")
+        self.context.eventSubject.send(.measurement(measurements))
     }
     
     override func stop() {

@@ -10,6 +10,19 @@ import UIKit
 import AVFoundation
 
 
+//private class ControllerState {
+//    unowned var context: ViewController!
+//    func enter() { }
+//}
+
+
+//private class SeekState: ControllerState {
+//    override func enter() {
+//        <#code#>
+//    }
+//}
+
+
 final class ViewController: UIViewController {
     
     override var prefersStatusBarHidden: Bool {
@@ -34,7 +47,9 @@ final class ViewController: UIViewController {
     private var startSeekTime: TimeInterval?
     private var targetSeekTime: TimeInterval?
     private var lastSeekTime: TimeInterval?
+    
     private var seeking: Bool = false
+    private var paused: Bool = false
     
     private var displayLink: CADisplayLink?
     
@@ -95,7 +110,7 @@ final class ViewController: UIViewController {
         controlsStack.translatesAutoresizingMaskIntoConstraints = false
         controlsStack.axis = .vertical
         controlsStack.spacing = 44
-         controlsStack.addArrangedSubview(seekSlider)
+        controlsStack.addArrangedSubview(seekSlider)
         controlsStack.addArrangedSubview(volumeSlider)
         controlsStack.addArrangedSubview(rateSlider)
         controlsStack.addArrangedSubview(resetButton)
@@ -191,7 +206,7 @@ final class ViewController: UIViewController {
             return
         }
         let rate: Float
-        if seeking == true {
+        if seeking == true || paused == true {
             rate = 0
         }
         else {
@@ -203,11 +218,15 @@ final class ViewController: UIViewController {
         guard rate != videoPlayer.rate else {
             return
         }
+        print("rate: " + rate.formatted(.number.precision(.fractionLength(3))))
         videoPlayer.rate = rate
     }
     
     private func invalidatePlayerVolume() {
         guard let videoPlayer = videoPlayer else {
+            return
+        }
+        guard videoPlayer.volume != volumeSlider.value else {
             return
         }
         print("volume: \(volumeSlider.value)")
@@ -220,7 +239,7 @@ final class ViewController: UIViewController {
     private func startMotion() {
         motionController.start()
         motionEventCancellable = motionController.eventPublisher
-            .throttle(for: 0.03, scheduler: RunLoop.main, latest: true)
+            .receive(on: RunLoop.main)
             .sink { [weak self] event in
                 guard let self = self else {
                     return
@@ -242,13 +261,38 @@ final class ViewController: UIViewController {
             break
             
         case .measurement(let attitudeMeasurement):
-            // updateRate(angle: attitudeMeasurement.roll)
             self.attitudeMeasurement = attitudeMeasurement
+            
+        case .shake(let isShaking):
+            print("ViewController shaking: \(isShaking ? "yes" : "no")")
+            if isShaking == false {
+                paused.toggle()
+                invalidatePlayerRate()
+            }
         }
     }
+
+    // MARK: Display Link
     
-    private func updateRate(angle: Measurement<UnitAngle>) {
-            
+    private func startDisplayLink() {
+        displayLink = CADisplayLink(target: self, selector: #selector(onDisplayLink))
+        displayLink?.add(to: .main, forMode: .common)
+    }
+    
+    private func stopDisplayLink() {
+        displayLink?.invalidate()
+        displayLink = nil
+    }
+    
+    @objc func onDisplayLink() {
+        updateMeasurements()
+        updateSeekIndicator()
+    }
+    
+    private func updateMeasurements() {
+        guard let attitudeMeasurement = attitudeMeasurement else {
+            return
+        }
         guard let videoPlayer = videoPlayer else {
             return
         }
@@ -260,29 +304,45 @@ final class ViewController: UIViewController {
             return
         }
         // Convert roll from [-1/4 ... +1/4] to [-1 ... +1]
-        let input = angle.converted(to: .revolutions).value
-        
-        let k = input * 4
-        if abs(k) > 0.1 {
-            // if startSeekTime == nil {
+        let input = attitudeMeasurement.roll.converted(to: .revolutions).value * 4
+        if abs(input) > 0.5 {
+            // print("input: " + input.formatted(.number.precision(.fractionLength(3))))
+            
             let currentTime = videoPlayer.currentTime().seconds
             startSeekTime = currentTime
-            // }
-            let timeDelta = k * 2
+            let timeDelta = input * 0.7
             targetSeekTime = min(max(0, startSeekTime! + timeDelta), duration)
+            seekVideo()
         }
         else {
             targetSeekTime = nil
             lastSeekTime = nil
             startSeekTime = nil
+            
+            let t = attitudeMeasurement.pitch.converted(to: .revolutions).value - 0.25
+            // print("pitch: " + t.formatted(.number.precision(.fractionLength(3))))
+            guard abs(t) > 0.1 else {
+                return
+            }
+            volumeSlider.value += Float(t * 0.1)
+            invalidatePlayerVolume()
         }
-        
-        seekVideo()
-
-//        let delta = round((input * 4) * 10) / 10
-//        rateSlider.value = Float(delta)
-//        invalidatePlayerRate()
     }
+
+    private func updateSeekIndicator() {
+        guard let videoPlayer = videoPlayer else {
+            return
+        }
+        guard let currentItem = videoPlayer.currentItem else {
+            return
+        }
+        let currentTime = videoPlayer.currentTime().seconds
+        let duration = currentItem.duration.seconds
+        let t = currentTime / duration
+        seekSlider.value = Float(t)
+    }
+    
+    // MARK: Control
     
     private func seekVideo() {
         guard let videoPlayer = videoPlayer else {
@@ -316,37 +376,7 @@ final class ViewController: UIViewController {
                 self.seekVideo()
             }
         )
-
     }
     
-//    private func updateVolume(angle: Measurement<UnitAngle>) {
-//        let input = angle.converted(to: .revolutions).value
-//        print(input.formatted(.number.precision(.fractionLength(3))))
-//        if input >
-//        volumeSlider.value =
-//    }
-    
-    // MARK: Display Link
-    
-    private func startDisplayLink() {
-        displayLink = CADisplayLink(target: self, selector: #selector(onDisplayLink))
-        displayLink?.add(to: .main, forMode: .common)
-    }
-    
-    private func stopDisplayLink() {
-        displayLink?.invalidate()
-        displayLink = nil
-    }
-    
-    @objc func onDisplayLink() {
-        if let attitudeMeasurement = attitudeMeasurement {
-            updateRate(angle: attitudeMeasurement.roll)
-        }
-        
-        let currentTime = videoPlayer?.currentTime().seconds ?? 0
-        let duration = videoPlayer?.currentItem?.duration.seconds ?? 0
-        let t = currentTime / duration
-        seekSlider.value = Float(t)
-    }
 }
 
