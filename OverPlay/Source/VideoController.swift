@@ -247,7 +247,7 @@ final class VideoController {
         dispatchPrecondition(condition: .onQueue(.main))
         switch event {
             
-        case .error(let error):
+        case .error(_):
             // TODO: Log or display error
             break
             
@@ -313,8 +313,6 @@ final class VideoController {
         let seekInput = attitudeMeasurement.roll.converted(to: .revolutions).value * 4
         let volumeInput = attitudeMeasurement.pitch.converted(to: .revolutions).value - 0.25
         if abs(seekInput) > 0.5 {
-            // print("input: " + input.formatted(.number.precision(.fractionLength(3))))
-            
             let timeDelta = seekInput * 0.7
             let targetSeekTime = min(max(0, currentTime + timeDelta), duration)
             currentState?.seekGesture(time: targetSeekTime)

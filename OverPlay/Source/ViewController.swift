@@ -21,7 +21,8 @@ final class ViewController: UIViewController {
     }
     
     private var displayLink: CADisplayLink?
-    
+    private var motionCancellable: AnyCancellable?
+
     private let seekIndicator: UIProgressView = {
         let view = UIProgressView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -54,18 +55,19 @@ final class ViewController: UIViewController {
     }()
     
     private let videoView: VideoView = {
-        let view = VideoView()
+        let view = VideoView(frame: .zero)
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.videoGravity = .resizeAspectFill
         return view
     }()
 
     private let videoPlayer: AVPlayer
     private let videoController: VideoController
+    private let motionController: MotionController
 
-    init(videoPlayer: AVPlayer, videoController: VideoController) {
+    init(videoPlayer: AVPlayer, videoController: VideoController, motionController: MotionController) {
         self.videoPlayer = videoPlayer
         self.videoController = videoController
+        self.motionController = motionController
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -159,9 +161,25 @@ final class ViewController: UIViewController {
         displayLink = CADisplayLink(target: self, selector: #selector(onDisplayLink))
         displayLink?.add(to: .main, forMode: .common)
         videoController.setActive(true)
+        motionCancellable = motionController.eventPublisher
+            .receive(on: RunLoop.main)
+            // .throttle(for: 0.016, scheduler: RunLoop.main, latest: true)
+            .sink { [weak self] event in
+                guard let self = self else {
+                    return
+                }
+                switch event {
+                case .measurement(let attitude):
+                    self.videoView.orientation = -attitude.roll.converted(to: .radians).value
+                default:
+                    break
+                }
+            }
     }
     
     private func destroyVideoPlayer() {
+        motionCancellable?.cancel()
+        motionCancellable = nil
         displayLink?.invalidate()
         displayLink = nil
         videoController.setActive(false)

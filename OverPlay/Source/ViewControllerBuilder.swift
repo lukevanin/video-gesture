@@ -74,7 +74,8 @@ struct VideoViewControllerBuilder {
         )
         let viewController = ViewController(
             videoPlayer: videoPlayer,
-            videoController: videoController
+            videoController: videoController,
+            motionController: motionController
         )
         return viewController
     }

@@ -14,7 +14,7 @@ private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: 
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
-    let videoFilename = "WeAreGoingOnBullrun-optimized" // TODO: Load video file name from Info.plist
+    let videoFilename = "WeAreGoingOnBullrun" // TODO: Load video file name from Info.plist
     var window: UIWindow?
 
 
