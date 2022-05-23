@@ -20,23 +20,23 @@ final class ViewController: UIViewController {
         [.portrait]
     }
     
-    private var videoPlayer: AVPlayer?
-    private var videoPeriodicObserver: Any?
-    private var videoController: VideoController?
+    private var displayLink: CADisplayLink?
     
     private let seekSlider: UISlider
     private let volumeSlider: UISlider
     private let resetButton: UIButton
-    
-    private let videoFileURL: URL
     private let videoView: VideoView
-    
-    init(videoFileURL: URL, motionController: MotionController) {
+
+    private let videoPlayer: AVPlayer
+    private let videoController: VideoController
+
+    init(videoPlayer: AVPlayer, videoController: VideoController) {
         self.volumeSlider = UISlider()
         self.seekSlider = UISlider()
         self.resetButton = UIButton()
         self.videoView = VideoView()
-        self.videoFileURL = videoFileURL
+        self.videoPlayer = videoPlayer
+        self.videoController = videoController
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -52,6 +52,7 @@ final class ViewController: UIViewController {
         
         videoView.translatesAutoresizingMaskIntoConstraints = false
         videoView.videoGravity = .resizeAspectFill
+        videoView.player = videoPlayer
         
         seekSlider.translatesAutoresizingMaskIntoConstraints = false
         seekSlider.isUserInteractionEnabled = false
@@ -96,11 +97,11 @@ final class ViewController: UIViewController {
     }
 
     @objc func onVolumeSliderChanged(sender: UISlider) {
-        videoController?.setVolume(sender.value)
+        videoController.setVolume(sender.value)
     }
     
     @objc func onResetButtonTapped(sender: UIButton) {
-        videoController?.restart()
+        videoController.restart()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -116,45 +117,25 @@ final class ViewController: UIViewController {
     // MARK: Video Player
 
     private func setupVideoPlayer() {
-        let asset = AVAsset(url: videoFileURL)
-        let playerItem = AVPlayerItem(
-            asset: asset,
-            automaticallyLoadedAssetKeys: [
-                "duration"
-            ]
-        )
-        let videoPlayer = AVPlayer(playerItem: playerItem)
-        let videoPeriodicObserver = videoPlayer.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.01, preferredTimescale: 1000),
-            queue: .main,
-            using: { [weak self] time in
-                guard let self = self else {
-                    return
-                }
-                self.updateSeekIndicator()
-                self.updateVolumeIndicator()
-            }
-        )
-        
-        let motionController = MotionController()
-        let videoController = VideoController(player: videoPlayer, motionController: motionController)
-
-        self.videoPeriodicObserver = videoPeriodicObserver
-        self.videoController = videoController
-        self.videoPlayer = videoPlayer
-        self.videoView.player = videoPlayer
+        displayLink = CADisplayLink(target: self, selector: #selector(onDisplayLink))
+        displayLink?.add(to: .main, forMode: .common)
+        videoController.setActive(true)
     }
     
     private func destroyVideoPlayer() {
-        videoController = nil
-        videoPlayer = nil
+        displayLink?.invalidate()
+        displayLink = nil
+        videoController.setActive(false)
         videoView.player = nil
     }
     
+    @objc func onDisplayLink() {
+        updateSeekIndicator()
+        updateVolumeIndicator()
+    }
+    
     private func updateSeekIndicator() {
-        guard let videoController = videoController else {
-            return
-        }
+        dispatchPrecondition(condition: .onQueue(.main))
         let t: TimeInterval
         if videoController.duration > 0 {
             t = videoController.currentTime / videoController.duration
@@ -166,9 +147,7 @@ final class ViewController: UIViewController {
     }
 
     private func updateVolumeIndicator() {
-        guard let videoController = videoController else {
-            return
-        }
+        dispatchPrecondition(condition: .onQueue(.main))
         volumeSlider.value = videoController.volume
     }
 }

@@ -6,8 +6,12 @@
 //
 
 import Foundation
+import OSLog
 import AVFoundation
 import Combine
+
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "video-controller")
 
 
 ///
@@ -16,6 +20,7 @@ import Combine
 private class ControllerState {
     unowned var context: VideoController!
     func enter() { }
+    func update() { }
     func volumeGesture(volume: Float) { }
     func endVolumeGesture() { }
     func seekGesture(time: TimeInterval) { }
@@ -24,36 +29,27 @@ private class ControllerState {
     func endShakeGesture() { }
 }
 
-//extension ControllerState {
-//
-//    ///
-//    /// Convenience method used to seek the video by a given time from the current playback position.
-//    ///
-//    func seek(delta: TimeInterval) {
-//        let time = context.currentTime + delta
-//        seek(time: time)
-//    }
-//
-//    ///
-//    /// Convenience method used to adjust the current volume by a given amount.
-//    ///
-//    func adjustVolume(delta: Float) {
-//        let volume = context.volume + delta
-//        setVolume(volume: volume)
-//    }
-//}
-
 
 private final class PlaybackControllerState: ControllerState {
     
     override func enter() {
-        if context.isPlaying == true {
+        logger.debug("Playing")
+        update()
+    }
+    
+    override func update() {
+        let rate: Float
+        if context.isActive == true && context.isPlaying == true {
             // Resume playing
-            context.player.rate = 1
+            rate = 1
         }
         else {
             // Pause playback.
-            context.player.rate = 0
+            rate = 0
+        }
+        if context.player.rate != rate {
+            logger.debug("Setting playback rate \(rate)")
+            context.player.rate = rate
         }
     }
     
@@ -83,6 +79,7 @@ private final class SeekControllerState: ControllerState {
     }
 
     override func enter() {
+        logger.debug("Seeking")
         // Stop playing the video so that we can seek smoothly.
         context.player.rate = 0
     }
@@ -128,6 +125,11 @@ private final class SeekControllerState: ControllerState {
 
 
 private final class ShakeControllerState: ControllerState {
+    
+    override func enter() {
+        logger.debug("Shaking")
+    }
+    
     override func endShakeGesture() {
         if context.isPlaying == true {
             context.pause()
@@ -161,52 +163,56 @@ final class VideoController {
     }
     
     private(set) var isPlaying: Bool = true
+    
+    private(set) var isActive: Bool = false
 
     fileprivate var attitudeMeasurement: MotionProviderEvent.AttitudeMeasurement?
     fileprivate let player: AVPlayer
 
     private var motionEventCancellable: AnyCancellable?
+    private var locationEventCancellable: AnyCancellable?
     private var videoPlayerStatusObserver: NSKeyValueObservation?
     private var currentState: ControllerState?
     private var displayLink: CADisplayLink?
 
     private let motionController: MotionController
+    private let locationController: LocationController
 
-    init(player: AVPlayer, motionController: MotionController) {
+    init(player: AVPlayer, motionController: MotionController, locationController: LocationController) {
         self.player = player
         self.motionController = motionController
-//        videoPlayerStatusObserver = videoPlayer.observe(\.status) { player, change in
-//            switch change.newValue {
-//            case .none:
-//                print("status > none")
-//            case .some(.unknown):
-//                print("status > unknown")
-//            case .some(.failed):
-//                print("status > failed > \(player.error?.localizedDescription ?? "- unknown error -")")
-//            case .some(.readyToPlay):
-//                print("ready to play")
-//            }
-//        }
+        self.locationController = locationController
         setState(PlaybackControllerState())
         startMotionController()
         startDisplayLink()
     }
     
     deinit {
-//        videoPlayerStatusObserver?.invalidate()
-//        videoPlayerStatusObserver = nil
         stopDisplayLink()
+        locationController.stop()
+    }
+    
+    func setActive(_ active: Bool) {
+        guard active != isActive else {
+            return
+        }
+        logger.debug("Active \(active ? "yes" : "no")")
+        isActive = active
+        invalidateLocationController()
     }
     
     func restart() {
+        logger.debug("Restart")
         player.seek(to: .zero)
     }
     
     func pause() {
+        logger.debug("Pause")
         isPlaying = false
     }
     
     func resume() {
+        logger.debug("Resume")
         isPlaying = true
     }
     
@@ -246,13 +252,41 @@ final class VideoController {
             self.attitudeMeasurement = attitudeMeasurement
             
         case .shake(let isShaking):
-            print("ViewController shaking: \(isShaking ? "yes" : "no")")
             if isShaking == true {
                 currentState?.beginShakeGesture()
             }
             else {
                 currentState?.endShakeGesture()
             }
+        }
+    }
+    
+    // MARK: Location
+    
+    private func invalidateLocationController() {
+        if isActive == true {
+            locationController.start()
+            if locationEventCancellable == nil {
+                locationEventCancellable = locationController.eventPublisher
+                    .receive(on: RunLoop.main)
+                    .sink { [weak self] event in
+                        guard let self = self else {
+                            return
+                        }
+                        self.handleLocationEvent(event: event)
+                    }
+            }
+        }
+        else {
+            locationEventCancellable?.cancel()
+            locationController.stop()
+        }
+    }
+    
+    private func handleLocationEvent(event: LocationProviderEvent) {
+        switch event {
+        case .locationChanged:
+            restart()
         }
     }
 
@@ -282,7 +316,7 @@ final class VideoController {
             let targetSeekTime = min(max(0, currentTime + timeDelta), duration)
             currentState?.seekGesture(time: targetSeekTime)
         }
-        else if abs(volumeInput) > 0.1 {
+        else if abs(volumeInput) > 0.13 {
             let delta = Float(volumeInput * 0.1)
             currentState?.volumeGesture(volume: volume + delta)
         }
@@ -290,9 +324,10 @@ final class VideoController {
             currentState?.endSeekGesture()
             currentState?.endVolumeGesture()
         }
+        currentState?.update()
     }
     
-    // MARK: Control
+    // MARK: State
     
     fileprivate func setState(_ state: ControllerState?) {
         dispatchPrecondition(condition: .onQueue(.main))

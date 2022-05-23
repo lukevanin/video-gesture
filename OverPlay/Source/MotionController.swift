@@ -121,7 +121,6 @@ final private class RunningMotionState: MotionState {
             self.accelerationSamples.removeFirst()
         }
         let ag = self.accelerationSamples.reduce(0.0, +) / Double(accelerationSampleCount)
-        print(ax.formatted(.number.precision(.fractionLength(3))), ag.formatted(.number.precision(.fractionLength(3))))
         
         isShakingPossible = ax >= accelerationShakeThreshold
 
@@ -140,7 +139,6 @@ final private class RunningMotionState: MotionState {
         // let shaking = am >= accelerationShakeThreshold
         if shaking != self.isShaking {
             self.isShaking = shaking
-            print("shaking \(shaking ? "yes" : "no")")
             self.context.eventSubject.send(.shake(self.isShaking))
         }
         
@@ -183,8 +181,8 @@ final private class StoppedMotionState: MotionState {
 
 final class MotionController: MotionProvider {
 
-    let statePublisher: AnyPublisher<MotionProviderState, Never>
-    let eventPublisher: AnyPublisher<MotionProviderEvent, Never>
+    lazy var statePublisher: AnyPublisher<MotionProviderState, Never> = stateSubject.eraseToAnyPublisher()
+    lazy var eventPublisher: AnyPublisher<MotionProviderEvent, Never> = eventSubject.eraseToAnyPublisher()
     
     fileprivate let motionManager = CMMotionManager()
     fileprivate let stateSubject = CurrentValueSubject<MotionProviderState, Never>(.stopped)
@@ -193,8 +191,6 @@ final class MotionController: MotionProvider {
     private var currentState: MotionState?
     
     init() {
-        self.statePublisher = stateSubject.eraseToAnyPublisher()
-        self.eventPublisher = eventSubject.eraseToAnyPublisher()
         setState(InitialMotionState())
     }
     

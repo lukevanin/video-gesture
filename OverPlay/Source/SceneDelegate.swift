@@ -6,9 +6,15 @@
 //
 
 import UIKit
+import OSLog
+
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "scene")
+
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
+    let videoFilename = "WeAreGoingOnBullrun-optimized" // TODO: Load video file name from Info.plist
     var window: UIWindow?
 
 
@@ -17,19 +23,25 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let scene = (scene as? UIWindowScene) else {
-            fatalError("Cannot access scene")
+            logger.critical("Cannot initialize app. Scene unavailable.")
+            return
         }
-        guard let videoFileURL = Bundle.main.url(forResource: "WeAreGoingOnBullrun-optimized", withExtension: "mp4") else {
-            fatalError("Cannot locate video")
+        guard let videoFileURL = Bundle.main.url(forResource: videoFilename, withExtension: "mp4") else {
+            logger.critical("Cannot initialize app. Video file unavailable: \(self.videoFilename)")
+            return
         }
-        let motionController = MotionController()
-        let viewController = ViewController(
-            videoFileURL: videoFileURL,
-            motionController: motionController
-        )
+        let viewController: UIViewController
+        do {
+            viewController = try VideoViewControllerBuilder().with(fileURL: videoFileURL).build()
+        }
+        catch {
+            logger.critical("Cannot initialize view controller. \(error.localizedDescription)")
+            return
+        }
         window = UIWindow(windowScene: scene)
         window?.rootViewController = viewController
         window?.makeKeyAndVisible()
+        logger.debug("App initialized")
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
