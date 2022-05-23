@@ -91,7 +91,6 @@ final private class RunningMotionState: MotionState {
     let accelerationSampleCount = 60
     let accelerationShakeThreshold = 1.2
     let accelerationStopThreshold = 0.9
-
     
     override func enter() {
         logger.debug("Motion controller started")
