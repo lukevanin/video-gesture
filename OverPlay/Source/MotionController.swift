@@ -14,6 +14,9 @@ import Combine
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "motion")
 
 
+// MARK: Interface
+
+
 enum MotionProviderState {
     case unavailable
     case running
@@ -33,7 +36,7 @@ enum MotionProviderEvent {
 }
 
 
-protocol MotionProvider {
+protocol MotionProvider: AnyObject {
     var statePublisher: AnyPublisher<MotionProviderState, Never> { get }
     var eventPublisher: AnyPublisher<MotionProviderEvent, Never> { get }
     func start()
@@ -41,13 +44,13 @@ protocol MotionProvider {
 }
 
 
+// MARK: Implementation
+
+
 private class MotionState {
     unowned var context: MotionController!
-    
     func enter() { }
-    
     func start() { }
-    
     func stop() { }
 }
 
@@ -88,14 +91,11 @@ final private class RunningMotionState: MotionState {
     var accelerationSamples = [Double]()
     var isShakingPossible = false
     var isShaking = false
-    let accelerationSampleCount = 60
-    let accelerationShakeThreshold = 1.2
-    let accelerationStopThreshold = 0.9
     
     override func enter() {
         logger.debug("Motion controller started")
         context.stateSubject.send(.running)
-        context.motionManager.deviceMotionUpdateInterval = 1.0 / 120.0
+        context.motionManager.deviceMotionUpdateInterval = context.configuration.motionUpdateInterval
         context.motionManager.startDeviceMotionUpdates(
             using: .xArbitraryCorrectedZVertical,
             to: queue,
@@ -115,37 +115,40 @@ final private class RunningMotionState: MotionState {
     
     private func updateMotion(motion: CMDeviceMotion) {
         let a = motion.userAcceleration
-        let ax = sqrt(a.x * a.x + a.y * a.y + a.z * a.z)
-        self.accelerationSamples.append(ax)
-        if self.accelerationSamples.count > accelerationSampleCount {
+        let accelerationMagnitude = sqrt(a.x * a.x + a.y * a.y + a.z * a.z)
+        self.accelerationSamples.append(accelerationMagnitude)
+        if self.accelerationSamples.count > context.configuration.shakeAccelerationSampleCount {
             self.accelerationSamples.removeFirst()
         }
-        let ag = self.accelerationSamples.reduce(0.0, +) / Double(accelerationSampleCount)
+        let accelerationMean = self.accelerationSamples.reduce(0.0, +) / Double(context.configuration.shakeAccelerationSampleCount)
         
-        isShakingPossible = ax >= accelerationShakeThreshold
+        // Shake event is possible if the instantaneous magnitude exceeds the threshold.
+        isShakingPossible = accelerationMagnitude >= context.configuration.shakeAccelerationStartThreshold
 
+        // Trigger shake event when average acceleration over time exceeds a given threshold.
         var shaking = self.isShaking
         if shaking == false {
-            if ag >= accelerationShakeThreshold {
+            if accelerationMean >= context.configuration.shakeAccelerationStartThreshold {
                 shaking = true
             }
         }
         else {
-            if ag <= accelerationStopThreshold {
+            if accelerationMean <= context.configuration.shakeAccelerationStopThreshold {
                 shaking = false
             }
         }
-        // print(ag.formatted(.number.precision(.fractionLength(3))))
-        // let shaking = am >= accelerationShakeThreshold
         if shaking != self.isShaking {
+            logger.debug("Shaking \(shaking ? "yes" : "no")")
             self.isShaking = shaking
             self.context.eventSubject.send(.shake(self.isShaking))
         }
         
+        // Publish attitude event. Attitude events are ignored while the device is shaking.
         if isShaking || isShakingPossible {
             return
         }
         let q = motion.attitude.quaternion
+        // Compute roll and pitch from the motion attitude quaternion.
         // See: https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles#Source_code_2
         let roll = atan2(2 * (q.y * q.w - q.x * q.z), 1 - 2 * q.y * q.y - 2 * q.z * q.z)
         let pitch = atan2(2 * (q.x * q.w + q.y * q.z), 1 - 2 * q.x * q.x - 2 * q.z * q.z)
@@ -153,9 +156,6 @@ final private class RunningMotionState: MotionState {
             roll: Measurement(value: roll, unit: UnitAngle.radians),
             pitch: Measurement(value: pitch, unit: UnitAngle.radians)
         )
-        // let formattedRoll = measurements.roll.value.formatted(.number.precision(.fractionLength(3)))
-        // let formattedPitch = measurements.pitch.value.formatted(.number.precision(.fractionLength(3)))
-        // logger.info("r: \(formattedRoll), p: \(formattedPitch)")
         self.context.eventSubject.send(.measurement(measurements))
     }
     
@@ -180,17 +180,26 @@ final private class StoppedMotionState: MotionState {
 
 
 final class MotionController: MotionProvider {
+    
+    struct Configuration {
+        let motionUpdateInterval = 1.0 / 120.0
+        var shakeAccelerationSampleCount: Int = 60
+        var shakeAccelerationStartThreshold: Double = 1.2
+        var shakeAccelerationStopThreshold: Double = 0.9
+    }
 
     lazy var statePublisher: AnyPublisher<MotionProviderState, Never> = stateSubject.eraseToAnyPublisher()
     lazy var eventPublisher: AnyPublisher<MotionProviderEvent, Never> = eventSubject.eraseToAnyPublisher()
     
+    fileprivate let configuration: Configuration
     fileprivate let motionManager = CMMotionManager()
     fileprivate let stateSubject = CurrentValueSubject<MotionProviderState, Never>(.stopped)
     fileprivate let eventSubject = PassthroughSubject<MotionProviderEvent, Never>()
 
     private var currentState: MotionState?
     
-    init() {
+    init(configuration: Configuration = Configuration()) {
+        self.configuration = configuration
         setState(InitialMotionState())
     }
     

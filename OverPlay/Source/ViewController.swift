@@ -22,19 +22,48 @@ final class ViewController: UIViewController {
     
     private var displayLink: CADisplayLink?
     
-    private let seekSlider: UISlider
-    private let volumeSlider: UISlider
-    private let resetButton: UIButton
-    private let videoView: VideoView
+    private let seekIndicator: UIProgressView = {
+        let view = UIProgressView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let volumeIndicator: UIProgressView = {
+        let view = UIProgressView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let seekIconImageView: UIImageView = {
+        let view = UIImageView(image: UIImage(systemName: "timer"))
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let volumeIconImageView: UIImageView = {
+        let view = UIImageView(image: UIImage(systemName: "speaker"))
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let resetButton: UIButton = {
+        let view = UIButton()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.setTitle("Reset", for: .normal)
+        return view
+    }()
+    
+    private let videoView: VideoView = {
+        let view = VideoView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.videoGravity = .resizeAspectFill
+        return view
+    }()
 
     private let videoPlayer: AVPlayer
     private let videoController: VideoController
 
     init(videoPlayer: AVPlayer, videoController: VideoController) {
-        self.volumeSlider = UISlider()
-        self.seekSlider = UISlider()
-        self.resetButton = UIButton()
-        self.videoView = VideoView()
         self.videoPlayer = videoPlayer
         self.videoController = videoController
         super.init(nibName: nil, bundle: nil)
@@ -47,41 +76,45 @@ final class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        view.backgroundColor = .cyan
+        view.backgroundColor = .black
+        view.tintColor = .white
         view.addSubview(videoView)
         
-        videoView.translatesAutoresizingMaskIntoConstraints = false
-        videoView.videoGravity = .resizeAspectFill
         videoView.player = videoPlayer
-        
-        seekSlider.translatesAutoresizingMaskIntoConstraints = false
-        seekSlider.isUserInteractionEnabled = false
-        seekSlider.isEnabled = false
-        seekSlider.minimumValue = 0
-        seekSlider.maximumValue = 1
-        seekSlider.value = 0
-        seekSlider.isContinuous = true
-
-        volumeSlider.translatesAutoresizingMaskIntoConstraints = false
-        volumeSlider.isUserInteractionEnabled = false
-        volumeSlider.isEnabled = false
-        volumeSlider.minimumValue = 0
-        volumeSlider.maximumValue = 1
-        volumeSlider.value = 0.5
-        volumeSlider.isContinuous = true
-        volumeSlider.addTarget(self, action: #selector(onVolumeSliderChanged), for: .valueChanged)
-        
-        resetButton.translatesAutoresizingMaskIntoConstraints = false
-        resetButton.setTitle("Reset", for: .normal)
         resetButton.addTarget(self, action: #selector(onResetButtonTapped), for: .touchUpInside)
         
-        let controlsStack = UIStackView()
-        controlsStack.translatesAutoresizingMaskIntoConstraints = false
-        controlsStack.axis = .vertical
-        controlsStack.spacing = 44
-        controlsStack.addArrangedSubview(seekSlider)
-        controlsStack.addArrangedSubview(volumeSlider)
-        controlsStack.addArrangedSubview(resetButton)
+        let seekControlsStack: UIStackView = {
+            let view = UIStackView()
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.axis = .horizontal
+            view.alignment = .center
+            view.spacing = 16
+            view.addArrangedSubview(seekIconImageView)
+            view.addArrangedSubview(seekIndicator)
+            return view
+        }()
+        
+        let volumeControlsStack: UIStackView = {
+            let view = UIStackView()
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.axis = .horizontal
+            view.alignment = .center
+            view.spacing = 16
+            view.addArrangedSubview(volumeIconImageView)
+            view.addArrangedSubview(volumeIndicator)
+            return view
+        }()
+
+        let controlsStack: UIStackView = {
+            let view = UIStackView()
+            view.translatesAutoresizingMaskIntoConstraints = false
+            view.axis = .vertical
+            view.spacing = 44
+            view.addArrangedSubview(seekControlsStack)
+            view.addArrangedSubview(volumeControlsStack)
+            view.addArrangedSubview(resetButton)
+            return view
+        }()
         view.addSubview(controlsStack)
 
         NSLayoutConstraint.activate([
@@ -90,6 +123,12 @@ final class ViewController: UIViewController {
             videoView.topAnchor.constraint(equalTo: view.topAnchor),
             videoView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             
+            volumeIconImageView.widthAnchor.constraint(equalToConstant: 32),
+            volumeIconImageView.heightAnchor.constraint(equalToConstant: 32),
+            
+            seekIconImageView.widthAnchor.constraint(equalToConstant: 32),
+            seekIconImageView.heightAnchor.constraint(equalToConstant: 32),
+
             controlsStack.leftAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leftAnchor, constant: +32),
             controlsStack.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor, constant: -32),
             controlsStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -32)
@@ -126,7 +165,6 @@ final class ViewController: UIViewController {
         displayLink?.invalidate()
         displayLink = nil
         videoController.setActive(false)
-        videoView.player = nil
     }
     
     @objc func onDisplayLink() {
@@ -143,12 +181,12 @@ final class ViewController: UIViewController {
         else {
             t = 0
         }
-        seekSlider.value = Float(t)
+        seekIndicator.progress = Float(t)
     }
 
     private func updateVolumeIndicator() {
         dispatchPrecondition(condition: .onQueue(.main))
-        volumeSlider.value = videoController.volume
+        volumeIndicator.progress = videoController.volume
     }
 }
 

@@ -58,7 +58,8 @@ private final class PlaybackControllerState: ControllerState {
     }
     
     override func volumeGesture(volume: Float) {
-        context.player.volume = volume
+        let clampedVolume = max(0, min(1, volume))
+        context.player.volume = clampedVolume
     }
     
     override func beginShakeGesture() {
@@ -175,10 +176,10 @@ final class VideoController {
     private var currentState: ControllerState?
     private var displayLink: CADisplayLink?
 
-    private let motionController: MotionController
-    private let locationController: LocationController
+    private let motionController: MotionProvider
+    private let locationController: LocationProvider
 
-    init(player: AVPlayer, motionController: MotionController, locationController: LocationController) {
+    init(player: AVPlayer, motionController: MotionProvider, locationController: LocationProvider) {
         self.player = player
         self.motionController = motionController
         self.locationController = locationController
@@ -217,9 +218,11 @@ final class VideoController {
     }
     
     func setVolume(_ volume: Float) {
+        // TODO: Set volume manually.
     }
     
     func seek(time: TimeInterval) {
+        // TODO: Seek manually.
     }
     
     // MARK: Motion

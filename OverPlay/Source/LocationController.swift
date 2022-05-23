@@ -14,6 +14,9 @@ import CoreLocation
 private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "location")
 
 
+// MARK: Interface
+
+
 enum LocationProviderState {
     case initializing
     case unavailable
@@ -26,6 +29,17 @@ enum LocationProviderState {
 enum LocationProviderEvent {
     case locationChanged
 }
+
+
+protocol LocationProvider: AnyObject {
+    var statePublisher: AnyPublisher<LocationProviderState, Never> { get }
+    var eventPublisher: AnyPublisher<LocationProviderEvent, Never> { get }
+    func start()
+    func stop()
+}
+
+
+// MARK: Implementation
 
 
 private class ControllerState {
@@ -166,7 +180,7 @@ private final class ActiveControllerState: ControllerState {
 }
 
 
-final class LocationController: NSObject {
+final class LocationController: NSObject, LocationProvider {
     
     struct Configuration {
         var distanceThreshold: Measurement<UnitLength>
