@@ -11,10 +11,10 @@ import UIKit
 import AVFoundation
 
 
-private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "ui")
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "video-ui")
 
 
-final class ViewController: UIViewController {
+final class VideoViewController: UIViewController {
     
     override var prefersStatusBarHidden: Bool {
         return true

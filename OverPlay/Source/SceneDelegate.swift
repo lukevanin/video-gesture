@@ -21,10 +21,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             logger.critical("Cannot initialize app. Scene unavailable.")
             return
         }
+        let videoURL = URL(string: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4")!
+        let cachesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        let cacheFileURL = cachesDirectory.appendingPathComponent("temp", isDirectory: false).appendingPathExtension("mp4")
+        let builder = VideoCacheViewControllerBuilder().with(videoURL: videoURL).with(cacheFileURL: cacheFileURL)
         let viewController: UIViewController
-        let videoURL = URL(string: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4")!
         do {
-            viewController = try VideoViewControllerBuilder().with(url: videoURL).build()
+            viewController = try builder.build()
         }
         catch {
             logger.critical("Cannot initialize view controller. \(error.localizedDescription)")

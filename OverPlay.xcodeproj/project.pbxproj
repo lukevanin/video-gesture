@@ -7,9 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FC2C06C5283D133400A405D3 /* VideoCacheViewControllerBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2C06C4283D133400A405D3 /* VideoCacheViewControllerBuilder.swift */; };
+		FC2C06C7283D142500A405D3 /* VideoDownloadViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2C06C6283D142500A405D3 /* VideoDownloadViewController.swift */; };
+		FC2C06C9283D16C500A405D3 /* DownloadController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2C06C8283D16C500A405D3 /* DownloadController.swift */; };
 		FC7F58DC2837E54800DA6F33 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7F58DB2837E54800DA6F33 /* AppDelegate.swift */; };
 		FC7F58DE2837E54800DA6F33 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7F58DD2837E54800DA6F33 /* SceneDelegate.swift */; };
-		FC7F58E02837E54800DA6F33 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7F58DF2837E54800DA6F33 /* ViewController.swift */; };
+		FC7F58E02837E54800DA6F33 /* VideoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7F58DF2837E54800DA6F33 /* VideoViewController.swift */; };
 		FC7F58E52837E54900DA6F33 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC7F58E42837E54900DA6F33 /* Assets.xcassets */; };
 		FC7F58E82837E54900DA6F33 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FC7F58E62837E54900DA6F33 /* LaunchScreen.storyboard */; };
 		FC7F58F32837E54900DA6F33 /* OverPlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7F58F22837E54900DA6F33 /* OverPlayTests.swift */; };
@@ -20,7 +23,7 @@
 		FC7F59132839300700DA6F33 /* VideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7F59122839300700DA6F33 /* VideoView.swift */; };
 		FCA3F02B283B869F0051CE49 /* VideoController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA3F02A283B869F0051CE49 /* VideoController.swift */; };
 		FCA3F02D283B96A80051CE49 /* LocationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA3F02C283B96A80051CE49 /* LocationController.swift */; };
-		FCA3F02F283BA39E0051CE49 /* ViewControllerBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA3F02E283BA39D0051CE49 /* ViewControllerBuilder.swift */; };
+		FCA3F02F283BA39E0051CE49 /* VideoViewControllerBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA3F02E283BA39D0051CE49 /* VideoViewControllerBuilder.swift */; };
 		FCA3F031283BAD680051CE49 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA3F030283BAD680051CE49 /* Extensions.swift */; };
 		FCA3F033283BCF020051CE49 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = FCA3F032283BCF020051CE49 /* README.md */; };
 		FCA3F035283BCF090051CE49 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = FCA3F034283BCF090051CE49 /* LICENSE */; };
@@ -44,10 +47,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		FC2C06C4283D133400A405D3 /* VideoCacheViewControllerBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoCacheViewControllerBuilder.swift; sourceTree = "<group>"; };
+		FC2C06C6283D142500A405D3 /* VideoDownloadViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDownloadViewController.swift; sourceTree = "<group>"; };
+		FC2C06C8283D16C500A405D3 /* DownloadController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadController.swift; sourceTree = "<group>"; };
 		FC7F58D82837E54800DA6F33 /* OverPlay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OverPlay.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FC7F58DB2837E54800DA6F33 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		FC7F58DD2837E54800DA6F33 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		FC7F58DF2837E54800DA6F33 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		FC7F58DF2837E54800DA6F33 /* VideoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoViewController.swift; sourceTree = "<group>"; };
 		FC7F58E42837E54900DA6F33 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FC7F58E72837E54900DA6F33 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		FC7F58E92837E54900DA6F33 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -61,7 +67,7 @@
 		FC7F59122839300700DA6F33 /* VideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoView.swift; sourceTree = "<group>"; };
 		FCA3F02A283B869F0051CE49 /* VideoController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoController.swift; sourceTree = "<group>"; };
 		FCA3F02C283B96A80051CE49 /* LocationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationController.swift; sourceTree = "<group>"; };
-		FCA3F02E283BA39D0051CE49 /* ViewControllerBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewControllerBuilder.swift; sourceTree = "<group>"; };
+		FCA3F02E283BA39D0051CE49 /* VideoViewControllerBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoViewControllerBuilder.swift; sourceTree = "<group>"; };
 		FCA3F030283BAD680051CE49 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		FCA3F032283BCF020051CE49 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		FCA3F034283BCF090051CE49 /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
@@ -145,11 +151,14 @@
 			children = (
 				FC7F58DB2837E54800DA6F33 /* AppDelegate.swift */,
 				FC7F58DD2837E54800DA6F33 /* SceneDelegate.swift */,
-				FCA3F02E283BA39D0051CE49 /* ViewControllerBuilder.swift */,
-				FC7F58DF2837E54800DA6F33 /* ViewController.swift */,
+				FCA3F02E283BA39D0051CE49 /* VideoViewControllerBuilder.swift */,
+				FC7F58DF2837E54800DA6F33 /* VideoViewController.swift */,
+				FC2C06C6283D142500A405D3 /* VideoDownloadViewController.swift */,
+				FC2C06C4283D133400A405D3 /* VideoCacheViewControllerBuilder.swift */,
 				FCA3F02A283B869F0051CE49 /* VideoController.swift */,
 				FC7F59122839300700DA6F33 /* VideoView.swift */,
 				FC7F5910283921C300DA6F33 /* MotionController.swift */,
+				FC2C06C8283D16C500A405D3 /* DownloadController.swift */,
 				FCA3F02C283B96A80051CE49 /* LocationController.swift */,
 				FCA3F030283BAD680051CE49 /* Extensions.swift */,
 			);
@@ -300,14 +309,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FC7F58E02837E54800DA6F33 /* ViewController.swift in Sources */,
+				FC7F58E02837E54800DA6F33 /* VideoViewController.swift in Sources */,
+				FC2C06C5283D133400A405D3 /* VideoCacheViewControllerBuilder.swift in Sources */,
 				FCA3F031283BAD680051CE49 /* Extensions.swift in Sources */,
+				FC2C06C9283D16C500A405D3 /* DownloadController.swift in Sources */,
 				FC7F59132839300700DA6F33 /* VideoView.swift in Sources */,
 				FCA3F02B283B869F0051CE49 /* VideoController.swift in Sources */,
 				FC7F58DC2837E54800DA6F33 /* AppDelegate.swift in Sources */,
-				FCA3F02F283BA39E0051CE49 /* ViewControllerBuilder.swift in Sources */,
+				FCA3F02F283BA39E0051CE49 /* VideoViewControllerBuilder.swift in Sources */,
 				FC7F58DE2837E54800DA6F33 /* SceneDelegate.swift in Sources */,
 				FC7F5911283921C300DA6F33 /* MotionController.swift in Sources */,
+				FC2C06C7283D142500A405D3 /* VideoDownloadViewController.swift in Sources */,
 				FCA3F02D283B96A80051CE49 /* LocationController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

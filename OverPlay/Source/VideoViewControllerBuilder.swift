@@ -53,12 +53,7 @@ struct VideoViewControllerBuilder {
             throw BuilderError.missingFileURL
         }
         print("Creating video player with URL \(url)")
-        let asset = AVURLAsset(
-            url: url,
-            options: [
-                AVURLAssetPreferPreciseDurationAndTimingKey: NSNumber(value: false)
-            ]
-        )
+        let asset = AVAsset(url: url)
         let playerItem = AVPlayerItem(
             asset: asset,
             automaticallyLoadedAssetKeys: [
@@ -77,7 +72,7 @@ struct VideoViewControllerBuilder {
             motionController: motionController,
             locationController: locationController
         )
-        let viewController = ViewController(
+        let viewController = VideoViewController(
             videoPlayer: videoPlayer,
             videoController: videoController,
             motionController: motionController
