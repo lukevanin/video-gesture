@@ -22,15 +22,15 @@ struct VideoViewControllerBuilder {
         var locationChangeThreshold = Measurement(value: 10, unit: UnitLength.meters)
     }
     
-    private var fileURL: URL?
+    private var url: URL?
     private var configuration = Configuration()
     
     ///
     /// Sets the URL of the local video file to play.
     ///
-    func with(fileURL: URL) -> VideoViewControllerBuilder {
+    func with(url: URL) -> VideoViewControllerBuilder {
         VideoViewControllerBuilder(
-            fileURL: fileURL,
+            url: url,
             configuration: configuration
         )
     }
@@ -40,7 +40,7 @@ struct VideoViewControllerBuilder {
     ///
     func with(configuration: Configuration) -> VideoViewControllerBuilder {
         VideoViewControllerBuilder(
-            fileURL: fileURL,
+            url: url,
             configuration: configuration
         )
     }
@@ -49,11 +49,16 @@ struct VideoViewControllerBuilder {
     /// Returns the constructed view controller using the provided parameters. Throws an error if the view controller cannot be instantiated.
     ///
     func build() throws -> UIViewController {
-        guard let fileURL = fileURL else {
+        guard let url = url else {
             throw BuilderError.missingFileURL
         }
-
-        let asset = AVAsset(url: fileURL)
+        print("Creating video player with URL \(url)")
+        let asset = AVURLAsset(
+            url: url,
+            options: [
+                AVURLAssetPreferPreciseDurationAndTimingKey: NSNumber(value: false)
+            ]
+        )
         let playerItem = AVPlayerItem(
             asset: asset,
             automaticallyLoadedAssetKeys: [

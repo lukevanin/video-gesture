@@ -7,6 +7,39 @@
 
 import Foundation
 import CoreLocation
+import AVFoundation
+
+
+extension AVPlayer.Status: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .readyToPlay:
+            return "ready to play"
+        case .unknown:
+            return "unknown"
+        case .failed:
+            return "failed"
+        @unknown default:
+            return "unknown"
+        }
+    }
+}
+
+
+extension AVPlayer.TimeControlStatus: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .paused:
+            return "paused"
+        case .playing:
+            return "playing"
+        case .waitingToPlayAtSpecifiedRate:
+            return "waiting to play at specified rate"
+        @unknown default:
+            return "unknown"
+        }
+    }
+}
 
 
 extension CLAuthorizationStatus: CustomStringConvertible {

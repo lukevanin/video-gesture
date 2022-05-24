@@ -6,8 +6,12 @@
 //
 
 import Combine
+import OSLog
 import UIKit
 import AVFoundation
+
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "ui")
 
 
 final class ViewController: UIViewController {
@@ -22,6 +26,18 @@ final class ViewController: UIViewController {
     
     private var displayLink: CADisplayLink?
     private var motionCancellable: AnyCancellable?
+    private var playerStatusObserver: NSKeyValueObservation?
+    private var playerTimeControlStatusObserver: NSKeyValueObservation?
+
+    private let loadingActivityIndicator: UIActivityIndicatorView = {
+        let view = UIActivityIndicatorView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.style = .large
+        view.tintColor = .white
+        view.hidesWhenStopped = true
+        view.stopAnimating()
+        return view
+    }()
 
     private let seekIndicator: UIProgressView = {
         let view = UIProgressView()
@@ -35,6 +51,13 @@ final class ViewController: UIViewController {
         return view
     }()
     
+    private let errorIconImageView: UIImageView = {
+        let view = UIImageView(image: UIImage(systemName: "exclamationmark.triangle.fill"))
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
     private let seekIconImageView: UIImageView = {
         let view = UIImageView(image: UIImage(systemName: "timer"))
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -77,11 +100,7 @@ final class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        view.backgroundColor = .black
-        view.tintColor = .white
-        view.addSubview(videoView)
-        
+                
         videoView.player = videoPlayer
         resetButton.addTarget(self, action: #selector(onResetButtonTapped), for: .touchUpInside)
         
@@ -117,6 +136,12 @@ final class ViewController: UIViewController {
             view.addArrangedSubview(resetButton)
             return view
         }()
+        
+        view.backgroundColor = .black
+        view.tintColor = .white
+        view.addSubview(videoView)
+        view.addSubview(errorIconImageView)
+        view.addSubview(loadingActivityIndicator)
         view.addSubview(controlsStack)
 
         NSLayoutConstraint.activate([
@@ -125,6 +150,14 @@ final class ViewController: UIViewController {
             videoView.topAnchor.constraint(equalTo: view.topAnchor),
             videoView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             
+            errorIconImageView.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            errorIconImageView.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            errorIconImageView.widthAnchor.constraint(equalToConstant: 64),
+            errorIconImageView.heightAnchor.constraint(equalToConstant: 64),
+            
+            loadingActivityIndicator.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            loadingActivityIndicator.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+
             volumeIconImageView.widthAnchor.constraint(equalToConstant: 32),
             volumeIconImageView.heightAnchor.constraint(equalToConstant: 32),
             
@@ -135,10 +168,6 @@ final class ViewController: UIViewController {
             controlsStack.rightAnchor.constraint(equalTo: view.safeAreaLayoutGuide.rightAnchor, constant: -32),
             controlsStack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -32)
         ])
-    }
-
-    @objc func onVolumeSliderChanged(sender: UISlider) {
-        videoController.setVolume(sender.value)
     }
     
     @objc func onResetButtonTapped(sender: UIButton) {
@@ -160,6 +189,20 @@ final class ViewController: UIViewController {
     private func setupVideoPlayer() {
         displayLink = CADisplayLink(target: self, selector: #selector(onDisplayLink))
         displayLink?.add(to: .main, forMode: .common)
+        playerStatusObserver = videoPlayer.observe(\.status) { [weak self] player, change in
+            dispatchPrecondition(condition: .onQueue(.main))
+            guard let self = self else {
+                return
+            }
+            self.invalidateActivityIndicator()
+        }
+        playerTimeControlStatusObserver = videoPlayer.observe(\.timeControlStatus) { [weak self] player, change in
+            dispatchPrecondition(condition: .onQueue(.main))
+            guard let self = self else {
+                return
+            }
+            self.invalidateActivityIndicator()
+        }
         videoController.setActive(true)
         motionCancellable = motionController.eventPublisher
             .receive(on: RunLoop.main)
@@ -178,13 +221,57 @@ final class ViewController: UIViewController {
     }
     
     private func destroyVideoPlayer() {
+        videoController.setActive(false)
         motionCancellable?.cancel()
         motionCancellable = nil
         displayLink?.invalidate()
         displayLink = nil
-        videoController.setActive(false)
+        playerStatusObserver?.invalidate()
+        playerStatusObserver = nil
     }
     
+    private func invalidateActivityIndicator() {
+        logger.debug("Player state: status=\(self.videoPlayer.status.description), time control status=\(self.videoPlayer.timeControlStatus.description)")
+        switch videoPlayer.status {
+        case .unknown:
+            setErrorVisible(false)
+            setActivityIndicator(true)
+        case .failed:
+            setErrorVisible(true)
+            setActivityIndicator(false)
+        case .readyToPlay:
+            switch videoPlayer.timeControlStatus {
+            case .waitingToPlayAtSpecifiedRate:
+                setErrorVisible(false)
+                setActivityIndicator(true)
+            case .playing, .paused:
+                setErrorVisible(false)
+                setActivityIndicator(false)
+            @unknown default:
+                fatalError("Unknown player time control status")
+            }
+        @unknown default:
+            fatalError("Unknown player status")
+        }
+    }
+    
+    private func setErrorVisible(_ visible: Bool) {
+        if errorIconImageView.isHidden == visible {
+            errorIconImageView.isHidden = !visible
+        }
+    }
+    
+    private func setActivityIndicator(_ visible: Bool) {
+        switch (loadingActivityIndicator.isAnimating, visible) {
+        case (false, true):
+            loadingActivityIndicator.startAnimating()
+        case (true, false):
+            loadingActivityIndicator.stopAnimating()
+        default:
+            break
+        }
+    }
+
     @objc func onDisplayLink() {
         updateSeekIndicator()
         updateVolumeIndicator()

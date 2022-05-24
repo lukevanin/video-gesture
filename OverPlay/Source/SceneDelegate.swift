@@ -14,22 +14,17 @@ private let logger = Logger(subsystem: Bundle.main.bundleIdentifier!, category: 
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
-    let videoFilename = "WeAreGoingOnBullrun" // TODO: Load video file name from Info.plist
     var window: UIWindow?
-
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let scene = (scene as? UIWindowScene) else {
             logger.critical("Cannot initialize app. Scene unavailable.")
             return
         }
-        guard let videoFileURL = Bundle.main.url(forResource: videoFilename, withExtension: "mp4") else {
-            logger.critical("Cannot initialize app. Video file unavailable: \(self.videoFilename)")
-            return
-        }
         let viewController: UIViewController
+        let videoURL = URL(string: "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4")!
         do {
-            viewController = try VideoViewControllerBuilder().with(fileURL: videoFileURL).build()
+            viewController = try VideoViewControllerBuilder().with(url: videoURL).build()
         }
         catch {
             logger.critical("Cannot initialize view controller. \(error.localizedDescription)")

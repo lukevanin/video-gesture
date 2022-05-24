@@ -21,15 +21,6 @@ final class VideoView: UIView {
         }
     }
     
-//    var videoGravity: AVLayerVideoGravity {
-//        get {
-//            playerLayer.videoGravity
-//        }
-//        set {
-//            playerLayer.videoGravity = newValue
-//        }
-//    }
-    
     var orientation: CGFloat = 0 {
         didSet {
             invalidateOrientation()
@@ -44,8 +35,6 @@ final class VideoView: UIView {
     
     override init(frame: CGRect) {
         super.init(frame: frame)
-        layer.backgroundColor = UIColor.cyan.cgColor
-        playerLayer.backgroundColor = UIColor.magenta.cgColor
         playerLayer.videoGravity = .resize
         transformLayer.addSublayer(playerLayer)
         layer.addSublayer(transformLayer)
